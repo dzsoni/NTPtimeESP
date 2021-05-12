@@ -12,26 +12,24 @@ Based on work from John Lassen: http://www.john-lassen.de/index.php/projects/esp
 #include <Arduino.h>
 #include "NTPtimeESP.h"
 
-#define LEAP_YEAR(Y) ( ((1970+Y)>0) && !((1970+Y)%4) && ( ((1970+Y)%100) || !((1970+Y)%400) ) )
+#define LEAP_YEAR(Y) (((1970 + Y) > 0) && !((1970 + Y) % 4) && (((1970 + Y) % 100) || !((1970 + Y) % 400)))
 
-#define SEC_TO_MS             1000
-#define RECV_TIMEOUT_DEFAULT  1       // 1 second
-#define SEND_INTRVL_DEFAULT   1       // 1 second
-#define MAX_SEND_INTERVAL     60      // 60 seconds
-#define MAC_RECV_TIMEOUT      60      // 60 seconds
+#define SEC_TO_MS 1000
+#define RECV_TIMEOUT_DEFAULT 1 // 1 second
+#define SEND_INTRVL_DEFAULT 1  // 1 second
+#define MAX_SEND_INTERVAL 60   // 60 seconds
+#define MAC_RECV_TIMEOUT 60	   // 60 seconds
 
 const int NTP_PACKET_SIZE = 48;
-byte _packetBuffer[ NTP_PACKET_SIZE];
+byte _packetBuffer[NTP_PACKET_SIZE];
 static const uint8_t _monthDays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-float _timeZone=0.0;
-String _NTPserver="";
 
-// NTPserver is the name of the NTPserver
-
-bool NTPtime::setSendInterval(unsigned long _sendInterval_) {
+bool NTPtime::setSendInterval(unsigned long _sendInterval_)
+{
 	bool retVal = false;
-	if(_sendInterval_ <= MAX_SEND_INTERVAL) {
+	if (_sendInterval_ <= MAX_SEND_INTERVAL)
+	{
 		_sendInterval = _sendInterval_ * SEC_TO_MS;
 		retVal = true;
 	}
@@ -39,57 +37,90 @@ bool NTPtime::setSendInterval(unsigned long _sendInterval_) {
 	return retVal;
 }
 
-bool NTPtime::setRecvTimeout(unsigned long _recvTimeout_) {
+bool NTPtime::setRecvTimeout(unsigned long _recvTimeout_)
+{
 	bool retVal = false;
-	if(_recvTimeout_ <= MAC_RECV_TIMEOUT) {
+	if (_recvTimeout_ <= MAC_RECV_TIMEOUT)
+	{
 		_recvTimeout = _recvTimeout_ * SEC_TO_MS;
 		retVal = true;
 	}
 
-	return retVal;  
+	return retVal;
 }
 
-NTPtime::NTPtime(String NTPserver) {
-	_NTPserver = NTPserver;
+NTPtime::NTPtime(String str, byte mode)
+{
+	_NTPserver = str;
 	_sendPhase = true;
-	_sentTime  = 0;
+	_sentTime = 0;
 	_sendInterval = SEND_INTRVL_DEFAULT * SEC_TO_MS;
 	_recvTimeout = RECV_TIMEOUT_DEFAULT * SEC_TO_MS;
+	_utcmin = 0;
+	_utczone = 0.0;
+	_stdst = 0;
+
+	if (mode == 1)
+	{
+
+		String json = _sjsonp.FileToString(str);
+		_NTPserver = _sjsonp.GetJSONValueByKey(json, "NTPserver");
+		_utczone = _sjsonp.GetJSONValueByKey(json, "UTCh").toInt();
+		_utcmin = _sjsonp.GetJSONValueByKey(json, "UTCm").toInt();
+		String tmp = _sjsonp.GetJSONValueByKey(json, "extratsh");
+		if (tmp == "ST")
+		{
+			_stdst = 1;
+		}
+		else if (tmp == "DST")
+		{
+			_stdst = 2;
+		}
+		else
+		{
+			_stdst = 0;
+		}
+	}
 }
 
-void NTPtime::printDateTime(strDateTime _dateTime) {
-	if (_dateTime.valid) {
+void NTPtime::printDateTime(strDateTime _dateTime)
+{
+	if (_dateTime.valid)
+	{
 		Serial.print(_dateTime.year);
-		Serial.print( "-");
+		Serial.print("-");
 		Serial.print(_dateTime.month);
-		Serial.print( "-");
+		Serial.print("-");
 		Serial.print(_dateTime.day);
-		Serial.print( "-");
+		Serial.print("-");
 		Serial.print(_dateTime.dayofWeek);
-		Serial.print( " ");
+		Serial.print(" ");
 
 		Serial.print(_dateTime.hour);
-		Serial.print( "H ");
+		Serial.print("H ");
 		Serial.print(_dateTime.minute);
-		Serial.print( "M ");
+		Serial.print("M ");
 		Serial.print(_dateTime.second);
-		Serial.print( "S ");
+		Serial.print("S ");
 		Serial.println();
-	} else {
+	}
+	else
+	{
 #ifdef DEBUG_ON
 		Serial.println("Invalid time !!!");
 		Serial.println("");
-#endif    
+#endif
 	}
 }
 
 // Converts a unix time stamp to a strDateTime structure
-strDateTime NTPtime::ConvertUnixTimestamp( unsigned long _tempTimeStamp) {
+strDateTime NTPtime::ConvertUnixTimestamp(unsigned long _tempTimeStamp)
+{
 	strDateTime _tempDateTime;
 	uint8_t _year, _month, _monthLength;
 	uint32_t _time;
 	unsigned long _days;
-	
+
 	_tempDateTime.epochTime = _tempTimeStamp;
 
 	_time = (uint32_t)_tempTimeStamp;
@@ -98,87 +129,105 @@ strDateTime NTPtime::ConvertUnixTimestamp( unsigned long _tempTimeStamp) {
 	_tempDateTime.minute = _time % 60;
 	_time /= 60; // now it is hours
 	_tempDateTime.hour = _time % 24;
-	_time /= 24; // now it is _days
-	_tempDateTime.dayofWeek = ((_time + 4) % 7) + 1;  // Sunday is day 1
+	_time /= 24;									 // now it is _days
+	_tempDateTime.dayofWeek = ((_time + 4) % 7) + 1; // Sunday is day 1
 
 	_year = 0;
 	_days = 0;
-	while ((unsigned)(_days += (LEAP_YEAR(_year) ? 366 : 365)) <= _time) {
+	while ((unsigned)(_days += (LEAP_YEAR(_year) ? 366 : 365)) <= _time)
+	{
 		_year++;
 	}
 	_tempDateTime.year = _year; // year is offset from 1970
 
 	_days -= LEAP_YEAR(_year) ? 366 : 365;
-	_time  -= _days; // now it is days in this year, starting at 0
+	_time -= _days; // now it is days in this year, starting at 0
 
 	_days = 0;
 	_month = 0;
 	_monthLength = 0;
-	for (_month = 0; _month < 12; _month++) {
-		if (_month == 1) { // february
-			if (LEAP_YEAR(_year)) {
+	for (_month = 0; _month < 12; _month++)
+	{
+		if (_month == 1)
+		{ // february
+			if (LEAP_YEAR(_year))
+			{
 				_monthLength = 29;
-			} else {
+			}
+			else
+			{
 				_monthLength = 28;
 			}
-		} else {
+		}
+		else
+		{
 			_monthLength = _monthDays[_month];
 		}
 
-		if (_time >= _monthLength) {
+		if (_time >= _monthLength)
+		{
 			_time -= _monthLength;
-		} else {
+		}
+		else
+		{
 			break;
 		}
 	}
-	_tempDateTime.month = _month + 1;  // jan is month 1
-	_tempDateTime.day = _time + 1;     // day of month
+	_tempDateTime.month = _month + 1; // jan is month 1
+	_tempDateTime.day = _time + 1;	  // day of month
 	_tempDateTime.year += 1970;
 
 	return _tempDateTime;
 }
 
-
 //
 // Summertime calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
 //
-boolean NTPtime::summerTime(unsigned long _timeStamp ) {
+boolean NTPtime::summerTime(unsigned long _timeStamp)
+{
 
-	strDateTime  _tempDateTime;
+	strDateTime _tempDateTime;
 	_tempDateTime = ConvertUnixTimestamp(_timeStamp);
 	// printTime("Innerhalb ", _tempDateTime);
 
-	if (_tempDateTime.month < 3 || _tempDateTime.month > 10) return false; // keine Sommerzeit in Jan, Feb, Nov, Dez
-	if (_tempDateTime.month > 3 && _tempDateTime.month < 10) return true; // Sommerzeit in Apr, Mai, Jun, Jul, Aug, Sep
-	if (_tempDateTime.month == 3 && (_tempDateTime.hour + 24 * _tempDateTime.day) >= (3 +  24 * (31 - (5 * _tempDateTime.year / 4 + 4) % 7)) || _tempDateTime.month == 10 && (_tempDateTime.hour + 24 * _tempDateTime.day) < (3 +  24 * (31 - (5 * _tempDateTime.year / 4 + 1) % 7)))
-	return true;
+	if (_tempDateTime.month < 3 || _tempDateTime.month > 10)
+		return false; // keine Sommerzeit in Jan, Feb, Nov, Dez
+	if (_tempDateTime.month > 3 && _tempDateTime.month < 10)
+		return true; // Sommerzeit in Apr, Mai, Jun, Jul, Aug, Sep
+	if ((_tempDateTime.month == 3) && (_tempDateTime.hour + 24 * _tempDateTime.day) >= (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 4) % 7)) || (_tempDateTime.month == 10) && (_tempDateTime.hour + 24 * _tempDateTime.day) < (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 1) % 7)))
+		return true;
 	else
-	return false;
+		return false;
 }
 
-boolean NTPtime::daylightSavingTime(unsigned long _timeStamp) {
+boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
+{
 
-	strDateTime  _tempDateTime;
+	strDateTime _tempDateTime;
 	_tempDateTime = ConvertUnixTimestamp(_timeStamp);
 
 	// here the US code
 	//return false;
 	// see http://stackoverflow.com/questions/5590429/calculating-daylight-saving-time-from-only-date
-	// since 2007 DST begins on second Sunday of March and ends on first Sunday of November. 
+	// since 2007 DST begins on second Sunday of March and ends on first Sunday of November.
 	// Time change occurs at 2AM locally
-	if (_tempDateTime.month < 3 || _tempDateTime.month > 11) return false;  //January, february, and december are out.
-	if (_tempDateTime.month > 3 && _tempDateTime.month < 11) return true;   //April to October are in
-	int previousSunday = _tempDateTime.day - (_tempDateTime.dayofWeek - 1);  // dow Sunday input was 1,
+	if (_tempDateTime.month < 3 || _tempDateTime.month > 11)
+		return false; //January, february, and december are out.
+	if (_tempDateTime.month > 3 && _tempDateTime.month < 11)
+		return true;														//April to October are in
+	int previousSunday = _tempDateTime.day - (_tempDateTime.dayofWeek - 1); // dow Sunday input was 1,
 	// need it to be Sunday = 0. If 1st of month = Sunday, previousSunday=1-0=1
 	//int previousSunday = day - (dow-1);
 	// -------------------- March ---------------------------------------
 	//In march, we are DST if our previous Sunday was = to or after the 8th.
-	if (_tempDateTime.month == 3 ) {  // in march, if previous Sunday is after the 8th, is DST
+	if (_tempDateTime.month == 3)
+	{ // in march, if previous Sunday is after the 8th, is DST
 		// unless Sunday and hour < 2am
-		if ( previousSunday >= 8 ) { // Sunday = 1
+		if (previousSunday >= 8)
+		{ // Sunday = 1
 			// return true if day > 14 or (dow == 1 and hour >= 2)
-			return ((_tempDateTime.day > 14) || 
-			((_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 2) || _tempDateTime.dayofWeek > 1));
+			return ((_tempDateTime.day > 14) ||
+					((_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 2) || _tempDateTime.dayofWeek > 1));
 		} // end if ( previousSunday >= 8 && _dateTime.dayofWeek > 0 )
 		else
 		{
@@ -186,7 +235,7 @@ boolean NTPtime::daylightSavingTime(unsigned long _timeStamp) {
 			//return (previousSunday < 8 && (_tempDateTime.dayofWeek - 1) = 0 && _tempDateTime.hour >= 2)
 			return false;
 		} // end else
-	} // end if (_tempDateTime.month == 3 )
+	}	  // end if (_tempDateTime.month == 3 )
 
 	// ------------------------------- November -------------------------------
 
@@ -202,32 +251,49 @@ boolean NTPtime::daylightSavingTime(unsigned long _timeStamp) {
 	else
 	{
 		// return false unless after first wk and dow = Sunday and hour < 2
-		return (_tempDateTime.day <8 && _tempDateTime.dayofWeek == 1 && _tempDateTime.hour < 2);
-	}  // end else
+		return (_tempDateTime.day < 8 && _tempDateTime.dayofWeek == 1 && _tempDateTime.hour < 2);
+	} // end else
 } // end boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
 
-
-unsigned long NTPtime::adjustTimeZone(unsigned long _timeStamp, float _timeZone, int _DayLightSaving) {
-	strDateTime _tempDateTime;
-	_timeStamp += (unsigned long)(_timeZone *  3600.0); // adjust timezone
-	if (_DayLightSaving ==1 && summerTime(_timeStamp)) _timeStamp += 3600; // European Summer time
-	if (_DayLightSaving ==2 && daylightSavingTime(_timeStamp)) _timeStamp += 3600; // US daylight time
+unsigned long NTPtime::adjustTimeZone(unsigned long _timeStamp, int8_t _timeZoneHour, uint8_t _timeZoneMin, int _DayLightSaving)
+{
+	_timeStamp+=(unsigned long)(_timeZoneHour * 3600);
+	if(_timeZoneHour<0)
+	{
+	_timeStamp -= (unsigned long)(_timeZoneMin);
+	}
+	else
+	{
+    _timeStamp+=(unsigned long)(_timeZoneMin);
+	}
+	if (_DayLightSaving == 1 && summerTime(_timeStamp))
+		_timeStamp += 3600; // European Summer time
+	if (_DayLightSaving == 2 && daylightSavingTime(_timeStamp))
+		_timeStamp += 3600; // US daylight time
 	return _timeStamp;
 }
 
-// time zone is the difference to UTC in hours
-// if _isDayLightSaving is true, time will be adjusted accordingly
+/* time zone is the difference to UTC in hours, there are not round hour
+// differnce zones too.
+// If _DayLightSaving is true, time will be adjusted accordingly
 // Use returned time only after checking "ret.valid" flag
+*/
 
-strDateTime NTPtime::getNTPtime(float _timeZone, int _DayLightSaving) {
+strDateTime NTPtime::getNTPtime(int8_t _timeZoneHour, uint8_t _timeZoneMin, int _DayLightSaving)
+{
+	_utczone = _timeZoneHour;
+	_utcmin  = _timeZoneMin;
+	_stdst   = _DayLightSaving;
+
 	int cb;
 	strDateTime _dateTime;
 	unsigned long _unixTime = 0;
-	_dateTime.valid = false;
 	unsigned long _currentTimeStamp;
 
-	if (_sendPhase) {
-		if (_sentTime && ((millis() - _sentTime) < _sendInterval)) {
+	if (_sendPhase)
+	{
+		if (_sentTime && ((unsigned long)(millis() - _sentTime) < _sendInterval))
+		{
 			return _dateTime;
 		}
 
@@ -244,9 +310,9 @@ strDateTime NTPtime::getNTPtime(float _timeZone, int _DayLightSaving) {
 
 		memset(_packetBuffer, 0, NTP_PACKET_SIZE);
 		_packetBuffer[0] = 0b11100011; // LI, Version, Mode
-		_packetBuffer[1] = 0;          // Stratum, or type of clock
-		_packetBuffer[2] = 6;          // Polling Interval
-		_packetBuffer[3] = 0xEC;       // Peer Clock Precision
+		_packetBuffer[1] = 0;		   // Stratum, or type of clock
+		_packetBuffer[2] = 6;		   // Polling Interval
+		_packetBuffer[3] = 0xEC;	   // Peer Clock Precision
 		_packetBuffer[12] = 49;
 		_packetBuffer[13] = 0x4E;
 		_packetBuffer[14] = 49;
@@ -256,14 +322,20 @@ strDateTime NTPtime::getNTPtime(float _timeZone, int _DayLightSaving) {
 		UDPNTPClient.endPacket();
 
 		_sentTime = millis();
-	} else {
+	}
+	else
+	{
 		cb = UDPNTPClient.parsePacket();
-		if (cb == 0) {
-			if ((millis() - _sentTime) > _recvTimeout) {
+		if (cb == 0)
+		{
+			if ((unsigned long)(millis() - _sentTime) > _recvTimeout)
+			{
 				_sendPhase = true;
 				_sentTime = 0;
 			}
-		} else {
+		}
+		else
+		{
 #ifdef DEBUG_ON
 			Serial.print("NTP packet received, length=");
 			Serial.println(cb);
@@ -275,12 +347,14 @@ strDateTime NTPtime::getNTPtime(float _timeZone, int _DayLightSaving) {
 			unsigned long secsSince1900 = highWord << 16 | lowWord;
 			const unsigned long seventyYears = 2208988800UL;
 			_unixTime = secsSince1900 - seventyYears;
-			if (secsSince1900 > 0) {
-				_currentTimeStamp = adjustTimeZone(_unixTime, _timeZone, _DayLightSaving);
+			if (secsSince1900 > 0)
+			{
+				_currentTimeStamp = adjustTimeZone(_unixTime, _timeZoneHour,  _timeZoneMin, _DayLightSaving);
 				_dateTime = ConvertUnixTimestamp(_currentTimeStamp);
 				_dateTime.valid = true;
-			} else
-			_dateTime.valid = false;
+			}
+			else
+				_dateTime.valid = false;
 
 			_sendPhase = true;
 		}
@@ -288,3 +362,7 @@ strDateTime NTPtime::getNTPtime(float _timeZone, int _DayLightSaving) {
 
 	return _dateTime;
 }
+ strDateTime NTPtime::getNTPtime()
+ {
+  return getNTPtime(_utczone,_utcmin,_stdst);
+ }

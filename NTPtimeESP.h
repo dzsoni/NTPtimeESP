@@ -19,6 +19,7 @@
 #include <ESP8266WiFi.h>
 #endif
 #include <WiFiUdp.h>
+#include <SimpleJsonParser.h>
 
 struct strDateTime
 {
@@ -29,28 +30,62 @@ struct strDateTime
   byte month;
   byte day;
   byte dayofWeek;
-  unsigned long epochTime;
-  boolean valid;
+  unsigned long epochTime =0;
+  boolean valid=false;
 };
+/** @class NTPtime
+ * \brief NTPtime class
+ * \details NTPtime class get time from a time server
+ * 
+ * @param[in]   str     Holds the name of the time server or the jsonfile name
+ *                      depends on value of mode
+ * @param[out]  mode    0-timeserver 1-json file name 
+ * Jsonfile example:
+ * {"NTPserver":"yourntpserver","UTCh":"1","UTCm":"0","extratsh":"ST"}
+ * 
+ * NTPserver    = your NTP server
+ * UTCh         = Time zone -12 to +14 
+ * UTCm         = minutes shift
+ * extratsh     = None/ST/DST         None,Summmer Time,Daylight Save Time
+*/
+class NTPtime
+{
+public:
+  SimpleJsonParser _sjsonp;
+  NTPtime(String str = "", byte mode = 0);
+  strDateTime getNTPtime(int8_t _timeZoneHour, uint8_t _timeZoneMin, int _DayLightSaving);
+  strDateTime getNTPtime();
+  strDateTime ConvertUnixTimestamp(unsigned long _tempTimeStamp);
+  void printDateTime(strDateTime _dateTime);
+  String  getNTPServer(){return _NTPserver;};
+  bool setSendInterval(unsigned long sendInterval); // in seconds
+  bool setRecvTimeout(unsigned long recvTimeout);   // in seconds
 
-class NTPtime {
-  public:
-    NTPtime(String NTPtime);
-    strDateTime getNTPtime(float _timeZone, int _DayLightSaving);
-    void printDateTime(strDateTime _dateTime);
-    bool setSendInterval(unsigned long _sendInterval);  // in seconds
-    bool setRecvTimeout(unsigned long _recvTimeout);    // in seconds
+private:
+  bool _sendPhase;
+  unsigned long _sentTime;
+  unsigned long _sendInterval;
+  unsigned long _recvTimeout;
 
-  private:
-    bool _sendPhase;
-    unsigned long _sentTime;
-    unsigned long _sendInterval;
-    unsigned long _recvTimeout;
+  String _NTPserver;
+  int _utczone;
+  int _utcmin;
+  int _stdst; //0=neither, 1=Summer Time, 2=Daylight Save Time
 
-    strDateTime ConvertUnixTimestamp( unsigned long _tempTimeStamp);
-    boolean summerTime(unsigned long _timeStamp );
-    boolean daylightSavingTime(unsigned long _timeStamp);
-    unsigned long adjustTimeZone(unsigned long _timeStamp, float _timeZone, int _DayLightSavingSaving);
-    WiFiUDP UDPNTPClient;
+  boolean summerTime(unsigned long _timeStamp);
+  boolean daylightSavingTime(unsigned long _timeStamp);
+
+  /**
+   *adjustTimeZone(unsigned long _timeStamp, int8_t _timeZoneHour, uint8_t _timZoneMin, int _DayLightSavingSaving)
+   *
+   *@param[in]  _timeStamp      Unix timestamp 
+   *@param[in]  _timeZoneHour   UTC timezone hour difference
+   *@param[in]  _timeZoneMin    UTC timezone minutes shift
+   *@param[in]  _DayLightSavingSaving 0- None, 1- Summer Time 2-DayLight Save Time
+   *@param[out] Adjusted unix timestamp
+   */
+  unsigned long adjustTimeZone(unsigned long _timeStamp, int8_t _timeZoneHour, uint8_t _timZoneMin, int _DayLightSavingSaving);
+
+  WiFiUDP UDPNTPClient;
 };
 #endif
