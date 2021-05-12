@@ -227,7 +227,7 @@ strDateTime NTPtime::getNTPtime(float _timeZone, int _DayLightSaving) {
 	unsigned long _currentTimeStamp;
 
 	if (_sendPhase) {
-		if (_sentTime && ((millis() - _sentTime) < _sendInterval)) {
+		if (_sentTime && ((unsigned long)(millis() - _sentTime) < _sendInterval)) {
 			return _dateTime;
 		}
 
@@ -259,7 +259,7 @@ strDateTime NTPtime::getNTPtime(float _timeZone, int _DayLightSaving) {
 	} else {
 		cb = UDPNTPClient.parsePacket();
 		if (cb == 0) {
-			if ((millis() - _sentTime) > _recvTimeout) {
+			if ((unsigned long)(millis() - _sentTime) > _recvTimeout) {
 				_sendPhase = true;
 				_sentTime = 0;
 			}
