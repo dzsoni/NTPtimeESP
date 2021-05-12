@@ -326,6 +326,7 @@ strDateTime NTPtime::getNTPtime(int8_t _timeZoneHour, uint8_t _timeZoneMin, int 
 	else
 	{
 		cb = UDPNTPClient.parsePacket();
+<<<<<<< HEAD
 		if (cb == 0)
 		{
 			if ((unsigned long)(millis() - _sentTime) > _recvTimeout)
