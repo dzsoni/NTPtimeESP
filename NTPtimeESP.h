@@ -39,9 +39,10 @@ struct strDateTime
  * 
  * @param[in]   str     Holds the name of the time server or the jsonfile name
  *                      depends on value of mode
- * @param[out]  mode    0-timeserver 1-json file name 
+ * @param[out]  mode    0-timeserver 1-json file name
+ * 
  * Jsonfile example:
- * {"NTPserver":"yourntpserver","UTCh":"1","UTCm":"0","extratsh":"ST"}
+ * {"NTPserver":"europe.pool.ntp.org","UTCh":"1","UTCm":"0","extratsh":"ST"}
  * 
  * NTPserver    = your NTP server
  * UTCh         = Time zone -12 to +14 
