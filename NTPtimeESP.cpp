@@ -51,23 +51,23 @@ bool NTPtime::setRecvTimeout(unsigned long _recvTimeout_)
 
 NTPtime::NTPtime(String str, byte mode)
 {
-	_NTPserver = str;
-	_sendPhase = true;
-	_sentTime = 0;
+	_NTPserver 	= str;
+	_sendPhase 	= true;
+	_sentTime 	= 0;
 	_sendInterval = SEND_INTRVL_DEFAULT * SEC_TO_MS;
-	_recvTimeout = RECV_TIMEOUT_DEFAULT * SEC_TO_MS;
-	_utcmin = 0;
-	_utczone = 0.0;
-	_stdst = 0;
+	_recvTimeout  = RECV_TIMEOUT_DEFAULT * SEC_TO_MS;
+	_utcmin 	= 0;
+	_utchour 	= 0;
+	_stdst 		= 0;
 
 	if (mode == 1)
 	{
 
-		String json = _sjsonp.FileToString(str);
-		_NTPserver = _sjsonp.GetJSONValueByKey(json, "NTPserver");
-		_utczone = _sjsonp.GetJSONValueByKey(json, "UTCh").toInt();
-		_utcmin = _sjsonp.GetJSONValueByKey(json, "UTCm").toInt();
-		String tmp = _sjsonp.GetJSONValueByKey(json, "extratsh");
+		String json = _sjsonp.fileToString(str);
+		_NTPserver = _sjsonp.getJSONValueByKey(json, "NTPserver");
+		_utchour = _sjsonp.getJSONValueByKey(json, "UTCh").toInt();
+		_utcmin = _sjsonp.getJSONValueByKey(json, "UTCm").toInt();
+		String tmp = _sjsonp.getJSONValueByKey(json, "extratsh");
 		if (tmp == "ST")
 		{
 			_stdst = 1;
@@ -194,7 +194,7 @@ boolean NTPtime::summerTime(unsigned long _timeStamp)
 		return false; // keine Sommerzeit in Jan, Feb, Nov, Dez
 	if (_tempDateTime.month > 3 && _tempDateTime.month < 10)
 		return true; // Sommerzeit in Apr, Mai, Jun, Jul, Aug, Sep
-	if ((_tempDateTime.month == 3) && (_tempDateTime.hour + 24 * _tempDateTime.day) >= (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 4) % 7)) || (_tempDateTime.month == 10) && (_tempDateTime.hour + 24 * _tempDateTime.day) < (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 1) % 7)))
+	if (((_tempDateTime.month == 3) && ((_tempDateTime.hour + 24 * _tempDateTime.day) >= (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 4) % 7)))) || ((_tempDateTime.month == 10) && (_tempDateTime.hour + 24 * _tempDateTime.day) < (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 1) % 7))))
 		return true;
 	else
 		return false;
@@ -255,22 +255,31 @@ boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
 	} // end else
 } // end boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
 
-unsigned long NTPtime::adjustTimeZone(unsigned long _timeStamp, int8_t _timeZoneHour, uint8_t _timeZoneMin, int _DayLightSaving)
+  /**
+   *adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timZoneMin, int DayLightSavingSaving)
+   *
+   *@param[in]  timeStamp      Unix timestamp 
+   *@param[in]  timeZoneHour   UTC timezone hour difference
+   *@param[in]  timeZoneMin    UTC timezone minutes shift
+   *@param[in]  DayLightSavingSaving 0- None, 1- Summer Time 2-DayLight Save Time
+   *@param[out] Adjusted unix timestamp
+   */
+unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving)
 {
-	_timeStamp+=(unsigned long)(_timeZoneHour * 3600);
-	if(_timeZoneHour<0)
+	timeStamp+=(unsigned long)(timeZoneHour * 3600);
+	if(timeZoneHour<0)
 	{
-	_timeStamp -= (unsigned long)(_timeZoneMin);
+	timeStamp -= (unsigned long)(timeZoneMin *60);
 	}
 	else
 	{
-    _timeStamp+=(unsigned long)(_timeZoneMin);
+    timeStamp+=(unsigned long)(timeZoneMin *60);
 	}
-	if (_DayLightSaving == 1 && summerTime(_timeStamp))
-		_timeStamp += 3600; // European Summer time
-	if (_DayLightSaving == 2 && daylightSavingTime(_timeStamp))
-		_timeStamp += 3600; // US daylight time
-	return _timeStamp;
+	if (DayLightSaving == 1 && summerTime(timeStamp))
+		timeStamp += 3600; // European Summer time
+	if (DayLightSaving == 2 && daylightSavingTime(timeStamp))
+		timeStamp += 3600; // US daylight time
+	return timeStamp;
 }
 
 /* time zone is the difference to UTC in hours, there are not round hour
@@ -279,22 +288,22 @@ unsigned long NTPtime::adjustTimeZone(unsigned long _timeStamp, int8_t _timeZone
 // Use returned time only after checking "ret.valid" flag
 */
 
-strDateTime NTPtime::getNTPtime(int8_t _timeZoneHour, uint8_t _timeZoneMin, int _DayLightSaving)
+strDateTime NTPtime::getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving)
 {
-	_utczone = _timeZoneHour;
-	_utcmin  = _timeZoneMin;
-	_stdst   = _DayLightSaving;
+	_utchour = timeZoneHour;
+	_utcmin  = timeZoneMin;
+	_stdst   = DayLightSaving;
 
 	int cb;
-	strDateTime _dateTime;
-	unsigned long _unixTime = 0;
-	unsigned long _currentTimeStamp;
+	strDateTime dateTime;
+	unsigned long unixTime = 0;
+	unsigned long currentTimeStamp;
 
 	if (_sendPhase)
 	{
 		if (_sentTime && ((unsigned long)(millis() - _sentTime) < _sendInterval))
 		{
-			return _dateTime;
+			return dateTime;
 		}
 
 		_sendPhase = false;
@@ -346,23 +355,23 @@ strDateTime NTPtime::getNTPtime(int8_t _timeZoneHour, uint8_t _timeZoneMin, int 
 			unsigned long lowWord = word(_packetBuffer[42], _packetBuffer[43]);
 			unsigned long secsSince1900 = highWord << 16 | lowWord;
 			const unsigned long seventyYears = 2208988800UL;
-			_unixTime = secsSince1900 - seventyYears;
+			unixTime = secsSince1900 - seventyYears;
 			if (secsSince1900 > 0)
 			{
-				_currentTimeStamp = adjustTimeZone(_unixTime, _timeZoneHour,  _timeZoneMin, _DayLightSaving);
-				_dateTime = ConvertUnixTimestamp(_currentTimeStamp);
-				_dateTime.valid = true;
+				currentTimeStamp = adjustTimeZone(unixTime, timeZoneHour,  timeZoneMin, DayLightSaving);
+				dateTime = ConvertUnixTimestamp(currentTimeStamp);
+				dateTime.valid = true;
 			}
 			else
-				_dateTime.valid = false;
+				dateTime.valid = false;
 
 			_sendPhase = true;
 		}
 	}
 
-	return _dateTime;
+	return dateTime;
 }
  strDateTime NTPtime::getNTPtime()
  {
-  return getNTPtime(_utczone,_utcmin,_stdst);
+  return getNTPtime(_utchour,_utcmin,_stdst);
  }
