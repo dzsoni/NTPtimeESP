@@ -68,17 +68,22 @@ public:
   strDateTime getNTPtime();
   strDateTime ConvertUnixTimestamp(unsigned long _tempTimeStamp);
   unsigned long adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timZoneMin, int DayLightSavingSaving);
-  void printDateTime(strDateTime _dateTime);
+  void    printDateTime(strDateTime _dateTime);
 
   String  getNTPServer(){return _NTPserver;};
-  bool setSendInterval(unsigned long sendInterval); // in seconds
-  bool setRecvTimeout(unsigned long recvTimeout);   // in seconds
-  int8_t getUtcHour() {return _utchour;};
+  int8_t  getUtcHour() {return _utchour;};
   uint8_t getUtcMin()  {return _utcmin;};
-  int8_t getSTDST()   {return _stdst;};
+  int8_t  getSTDST()   {return _stdst;};
+
+  void    setUtcHour(int8_t hour) {_utchour = hour;};
+  void    setUtcMin(uint8_t min) {_utcmin = min;};
+  void    setSTDST(int8_t stdst) {_stdst = stdst;};
+
+  bool    setSendInterval(unsigned long sendInterval); // in seconds
+  bool    setRecvTimeout(unsigned long recvTimeout);   // in seconds
+
   NTPtime(String str = "", byte mode = 0);
-
-
+  
 private:
   boolean summerTime(unsigned long _timeStamp);
   boolean daylightSavingTime(unsigned long _timeStamp);

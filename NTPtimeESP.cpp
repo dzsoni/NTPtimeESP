@@ -25,27 +25,25 @@ byte _packetBuffer[NTP_PACKET_SIZE];
 static const uint8_t _monthDays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 
-bool NTPtime::setSendInterval(unsigned long _sendInterval_)
+bool NTPtime::setSendInterval(unsigned long sendInterval)
 {
 	bool retVal = false;
-	if (_sendInterval_ <= MAX_SEND_INTERVAL)
+	if (sendInterval <= MAX_SEND_INTERVAL)
 	{
-		_sendInterval = _sendInterval_ * SEC_TO_MS;
+		_sendInterval = sendInterval * SEC_TO_MS;
 		retVal = true;
 	}
-
 	return retVal;
 }
 
-bool NTPtime::setRecvTimeout(unsigned long _recvTimeout_)
+bool NTPtime::setRecvTimeout(unsigned long recvTimeout)
 {
 	bool retVal = false;
-	if (_recvTimeout_ <= MAC_RECV_TIMEOUT)
+	if (recvTimeout <= MAC_RECV_TIMEOUT)
 	{
-		_recvTimeout = _recvTimeout_ * SEC_TO_MS;
+		_recvTimeout = recvTimeout * SEC_TO_MS;
 		retVal = true;
 	}
-
 	return retVal;
 }
 
@@ -62,19 +60,18 @@ NTPtime::NTPtime(String str, byte mode)
 
 	if (mode == 1)
 	{
-
 		String json = _sjsonp.fileToString(str);
-		_NTPserver = _sjsonp.getJSONValueByKey(json, "NTPserver");
-		_utchour = _sjsonp.getJSONValueByKey(json, "UTCh").toInt();
-		_utcmin = _sjsonp.getJSONValueByKey(json, "UTCm").toInt();
-		String tmp = _sjsonp.getJSONValueByKey(json, "extratsh");
-		if (tmp == "ST")
+		_NTPserver  = _sjsonp.getJSONValueByKeyFromString(json, "NTPserver");
+		_utchour    = _sjsonp.getJSONValueByKeyFromString(json, "UTCh").toInt();
+		_utcmin     = _sjsonp.getJSONValueByKeyFromString(json, "UTCm").toInt();
+		String tsh  = _sjsonp.getJSONValueByKeyFromString(json, "extratsh");
+		if (tsh == "ST")
 		{
-			_stdst = 1;
+			_stdst = 1;			//Summer Time
 		}
-		else if (tmp == "DST")
+		else if (tsh == "DST")
 		{
-			_stdst = 2;
+			_stdst = 2;			//Daylight Saving Time
 		}
 		else
 		{
@@ -114,70 +111,70 @@ void NTPtime::printDateTime(strDateTime _dateTime)
 }
 
 // Converts a unix time stamp to a strDateTime structure
-strDateTime NTPtime::ConvertUnixTimestamp(unsigned long _tempTimeStamp)
+strDateTime NTPtime::ConvertUnixTimestamp(unsigned long tempTimeStamp)
 {
-	strDateTime _tempDateTime;
-	uint8_t _year, _month, _monthLength;
-	uint32_t _time;
-	unsigned long _days;
+	strDateTime tempDateTime;
+	uint8_t year, month, monthLength;
+	uint32_t time;
+	unsigned long days;
 
-	_tempDateTime.epochTime = _tempTimeStamp;
+	tempDateTime.epochTime = tempTimeStamp;
 
-	_time = (uint32_t)_tempTimeStamp;
-	_tempDateTime.second = _time % 60;
-	_time /= 60; // now it is minutes
-	_tempDateTime.minute = _time % 60;
-	_time /= 60; // now it is hours
-	_tempDateTime.hour = _time % 24;
-	_time /= 24;									 // now it is _days
-	_tempDateTime.dayofWeek = ((_time + 4) % 7) + 1; // Sunday is day 1
+	time = (uint32_t)tempTimeStamp;
+	tempDateTime.second = time % 60;
+	time /= 60; // now it is minutes
+	tempDateTime.minute = time % 60;
+	time /= 60; // now it is hours
+	tempDateTime.hour = time % 24;
+	time /= 24;									 // now it is _days
+	tempDateTime.dayofWeek = ((time + 4) % 7) + 1; // Sunday is day 1
 
-	_year = 0;
-	_days = 0;
-	while ((unsigned)(_days += (LEAP_YEAR(_year) ? 366 : 365)) <= _time)
+	year = 0;
+	days = 0;
+	while ((unsigned)(days += (LEAP_YEAR(year) ? 366 : 365)) <= time)
 	{
-		_year++;
+		year++;
 	}
-	_tempDateTime.year = _year; // year is offset from 1970
+	tempDateTime.year = year; // year is offset from 1970
 
-	_days -= LEAP_YEAR(_year) ? 366 : 365;
-	_time -= _days; // now it is days in this year, starting at 0
+	days -= LEAP_YEAR(year) ? 366 : 365;
+	time -= days; // now it is days in this year, starting at 0
 
-	_days = 0;
-	_month = 0;
-	_monthLength = 0;
-	for (_month = 0; _month < 12; _month++)
+	days = 0;
+	month = 0;
+	monthLength = 0;
+	for (month = 0; month < 12; month++)
 	{
-		if (_month == 1)
+		if (month == 1)
 		{ // february
-			if (LEAP_YEAR(_year))
+			if (LEAP_YEAR(year))
 			{
-				_monthLength = 29;
+				monthLength = 29;
 			}
 			else
 			{
-				_monthLength = 28;
+				monthLength = 28;
 			}
 		}
 		else
 		{
-			_monthLength = _monthDays[_month];
+			monthLength = _monthDays[month];
 		}
 
-		if (_time >= _monthLength)
+		if (time >= monthLength)
 		{
-			_time -= _monthLength;
+			time -= monthLength;
 		}
 		else
 		{
 			break;
 		}
 	}
-	_tempDateTime.month = _month + 1; // jan is month 1
-	_tempDateTime.day = _time + 1;	  // day of month
-	_tempDateTime.year += 1970;
+	tempDateTime.month = month + 1; // jan is month 1
+	tempDateTime.day = time + 1;	  // day of month
+	tempDateTime.year += 1970;
 
-	return _tempDateTime;
+	return tempDateTime;
 }
 
 //
@@ -310,10 +307,10 @@ strDateTime NTPtime::getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int Da
 		UDPNTPClient.begin(1337); // Port for NTP receive
 
 #ifdef DEBUG_ON
-		IPAddress _timeServerIP;
-		WiFi.hostByName(_NTPserver.c_str(), _timeServerIP);
+		IPAddress timeServerIP;
+		WiFi.hostByName(_NTPserver.c_str(), timeServerIP);
 		Serial.println();
-		Serial.println(_timeServerIP);
+		Serial.println(timeServerIP);
 		Serial.println("Sending NTP packet");
 #endif
 
