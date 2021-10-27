@@ -63,7 +63,7 @@ NTPtime::NTPtime(String str, byte mode)
 		String json = _sjsonp.fileToString(str);
 		_NTPserver  = _sjsonp.getJSONValueByKeyFromString(json, "NTPserver");
 		_utchour    = _sjsonp.getJSONValueByKeyFromString(json, "UTCh").toInt();
-		_utcmin     = _sjsonp.getJSONValueByKeyFromString(json, "UTCm").toInt();
+		_utcmin     = (uint8_t)abs(_sjsonp.getJSONValueByKeyFromString(json, "UTCm").toInt());
 		String tsh  = _sjsonp.getJSONValueByKeyFromString(json, "extratsh");
 		if (tsh == "ST")
 		{
@@ -279,12 +279,11 @@ unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHo
 	return timeStamp;
 }
 
-/* time zone is the difference to UTC in hours, there are not round hour
-// differnce zones too.
-// If _DayLightSaving is true, time will be adjusted accordingly
-// Use returned time only after checking "ret.valid" flag
+/* The time of a time zone is an offset from UTC. Most adjacent time zones are exactly one hour apart
+   ,but there are not round hour differnce zones too. Use timeZoneMin to set not round hour.
+   If _DayLightSaving is true, time will be adjusted accordingly.
+   Use returned time only after checking "ret.valid" flag
 */
-
 strDateTime NTPtime::getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving)
 {
 	_utchour = timeZoneHour;
