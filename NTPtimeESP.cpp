@@ -89,16 +89,12 @@ void NTPtime::printDateTime(strDateTime _dateTime)
 		Serial.print(_dateTime.month);
 		Serial.print("-");
 		Serial.print(_dateTime.day);
-		Serial.print("-");
-		Serial.print(_dateTime.dayofWeek);
 		Serial.print(" ");
-
 		Serial.print(_dateTime.hour);
-		Serial.print("H ");
+		Serial.print(":");
 		Serial.print(_dateTime.minute);
-		Serial.print("M ");
+		Serial.print(":");
 		Serial.print(_dateTime.second);
-		Serial.print("S ");
 		Serial.println();
 	}
 	else
