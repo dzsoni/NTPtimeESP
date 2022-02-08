@@ -11,18 +11,17 @@ Based on work from John Lassen: http://www.john-lassen.de/index.php/projects/esp
 
 #include <Arduino.h>
 #include "NTPtimeESP.h"
+#include "struct_strDateTime.h"
 
-#define LEAP_YEAR(Y) (((1970 + Y) > 0) && !((1970 + Y) % 4) && (((1970 + Y) % 100) || !((1970 + Y) % 400)))
 
-#define SEC_TO_MS 1000
-#define RECV_TIMEOUT_DEFAULT 1 // 1 second
-#define SEND_INTRVL_DEFAULT 1  // 1 second
-#define MAX_SEND_INTERVAL 60   // 60 seconds
-#define MAC_RECV_TIMEOUT 60	   // 60 seconds
+#define SEC_TO_MS               1000
+#define RECV_TIMEOUT_DEFAULT    1   // 1 second
+#define SEND_INTRVL_DEFAULT     1   // 1 second
+#define MAX_SEND_INTERVAL       60  // 60 seconds
+#define MAC_RECV_TIMEOUT        60	// 60 seconds
 
 const int NTP_PACKET_SIZE = 48;
 byte _packetBuffer[NTP_PACKET_SIZE];
-static const uint8_t _monthDays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 
 bool NTPtime::setSendInterval(unsigned long sendInterval)
@@ -106,73 +105,6 @@ void NTPtime::printDateTime(strDateTime _dateTime)
 	}
 }
 
-// Converts a unix time stamp to a strDateTime structure
-strDateTime NTPtime::ConvertUnixTimestamp(unsigned long tempTimeStamp)
-{
-	strDateTime tempDateTime;
-	uint8_t year, month, monthLength;
-	uint32_t time;
-	unsigned long days;
-
-	tempDateTime.epochTime = tempTimeStamp;
-
-	time = (uint32_t)tempTimeStamp;
-	tempDateTime.second = time % 60;
-	time /= 60; // now it is minutes
-	tempDateTime.minute = time % 60;
-	time /= 60; // now it is hours
-	tempDateTime.hour = time % 24;
-	time /= 24;									 // now it is _days
-	tempDateTime.dayofWeek = ((time + 4) % 7) + 1; // Sunday is day 1
-
-	year = 0;
-	days = 0;
-	while ((unsigned)(days += (LEAP_YEAR(year) ? 366 : 365)) <= time)
-	{
-		year++;
-	}
-	tempDateTime.year = year; // year is offset from 1970
-
-	days -= LEAP_YEAR(year) ? 366 : 365;
-	time -= days; // now it is days in this year, starting at 0
-
-	days = 0;
-	month = 0;
-	monthLength = 0;
-	for (month = 0; month < 12; month++)
-	{
-		if (month == 1)
-		{ // february
-			if (LEAP_YEAR(year))
-			{
-				monthLength = 29;
-			}
-			else
-			{
-				monthLength = 28;
-			}
-		}
-		else
-		{
-			monthLength = _monthDays[month];
-		}
-
-		if (time >= monthLength)
-		{
-			time -= monthLength;
-		}
-		else
-		{
-			break;
-		}
-	}
-	tempDateTime.month = month + 1; // jan is month 1
-	tempDateTime.day = time + 1;	  // day of month
-	tempDateTime.year += 1970;
-
-	return tempDateTime;
-}
-
 //
 // Summertime calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
 //
@@ -180,7 +112,7 @@ boolean NTPtime::summerTime(unsigned long _timeStamp)
 {
 
 	strDateTime _tempDateTime;
-	_tempDateTime = ConvertUnixTimestamp(_timeStamp);
+	_tempDateTime.setFromUnixTimestamp(_timeStamp);
 	// printTime("Innerhalb ", _tempDateTime);
 
 	if (_tempDateTime.month < 3 || _tempDateTime.month > 10)
@@ -197,7 +129,7 @@ boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
 {
 
 	strDateTime _tempDateTime;
-	_tempDateTime = ConvertUnixTimestamp(_timeStamp);
+	_tempDateTime.setFromUnixTimestamp(_timeStamp);
 
 	// here the US code
 	//return false;
@@ -351,7 +283,7 @@ strDateTime NTPtime::getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int Da
 			if (secsSince1900 > 0)
 			{
 				currentTimeStamp = adjustTimeZone(unixTime, timeZoneHour,  timeZoneMin, DayLightSaving);
-				dateTime = ConvertUnixTimestamp(currentTimeStamp);
+				dateTime.setFromUnixTimestamp(currentTimeStamp);
 				dateTime.valid = true;
 			}
 			else

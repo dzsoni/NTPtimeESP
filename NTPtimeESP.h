@@ -20,19 +20,12 @@
 #endif
 #include <WiFiUdp.h>
 #include <SimpleJsonParser.h>
+#include "struct_strDateTime.h"
 
-struct strDateTime
-{
-  byte hour;
-  byte minute;
-  byte second;
-  int year;
-  byte month;
-  byte day;
-  byte dayofWeek;
-  unsigned long epochTime =0;
-  boolean valid=false;
-};
+#ifndef LEAPYEAR(Y)
+#define LEAP_YEAR(Y) (((1970 + Y) > 0) && !((1970 + Y) % 4) && (((1970 + Y) % 100) || !((1970 + Y) % 400)))
+#endif
+
 /** @class NTPtime
  * \brief NTPtime class
  * \details NTPtime class get time from a time server
@@ -52,41 +45,42 @@ struct strDateTime
 class NTPtime
 {
   private:
-  bool _sendPhase;
-  unsigned long _sentTime;
-  unsigned long _sendInterval;
-  unsigned long _recvTimeout;
 
-  String _NTPserver;
+  bool           _sendPhase;
+  unsigned long  _sentTime;
+  unsigned long  _sendInterval;
+  unsigned long  _recvTimeout;
+
+  String  _NTPserver;
   int8_t  _utchour;
   uint8_t _utcmin;
   int8_t  _stdst; //0=neither, 1=Summer Time, 2=Daylight Save Time
 
 public:
-  SimpleJsonParser _sjsonp;
-  strDateTime getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving);
-  strDateTime getNTPtime();
-  strDateTime ConvertUnixTimestamp(unsigned long _tempTimeStamp);
-  unsigned long adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timZoneMin, int DayLightSavingSaving);
-  void    printDateTime(strDateTime _dateTime);
 
-  String  getNTPServer(){return _NTPserver;};
-  int8_t  getUtcHour() {return _utchour;};
-  uint8_t getUtcMin()  {return _utcmin;};
-  int8_t  getSTDST()   {return _stdst;};
+  SimpleJsonParser  _sjsonp;
+  strDateTime       getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving);
+  strDateTime       getNTPtime();
+  unsigned long     adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timZoneMin, int DayLightSavingSaving);
+  void              printDateTime(strDateTime _dateTime);
 
-  void    setUtcHour(int8_t hour) {_utchour = hour;};
-  void    setUtcMin(uint8_t min) {_utcmin = min;};
-  void    setSTDST(int8_t stdst) {_stdst = stdst;};
+  String            getNTPServer(){return _NTPserver;};
+  int8_t            getUtcHour() {return _utchour;};
+  uint8_t           getUtcMin()  {return _utcmin;};
+  int8_t            getSTDST()   {return _stdst;};
 
-  bool    setSendInterval(unsigned long sendInterval); // in seconds
-  bool    setRecvTimeout(unsigned long recvTimeout);   // in seconds
+  void              setUtcHour(int8_t hour) {_utchour = hour;};
+  void              setUtcMin(uint8_t min) {_utcmin = min;};
+  void              setSTDST(int8_t stdst) {_stdst = stdst;};
+
+  bool              setSendInterval(unsigned long sendInterval); // in seconds
+  bool              setRecvTimeout(unsigned long recvTimeout);   // in seconds
 
   NTPtime(String str = "", byte mode = 0);
   
 private:
-  boolean summerTime(unsigned long _timeStamp);
-  boolean daylightSavingTime(unsigned long _timeStamp);
-  WiFiUDP UDPNTPClient;
+  boolean           summerTime(unsigned long _timeStamp);
+  boolean           daylightSavingTime(unsigned long _timeStamp);
+  WiFiUDP           UDPNTPClient;
 };
 #endif
