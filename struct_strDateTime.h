@@ -4,7 +4,8 @@
 
 #include <Arduino.h>
 
-#ifndef LEAPYEAR(Y)
+#ifndef LEAPYEAR_
+#define LEAPYEAR_
 #define LEAP_YEAR(Y) (((1970 + Y) > 0) && !((1970 + Y) % 4) && (((1970 + Y) % 100) || !((1970 + Y) % 400)))
 #endif
 
@@ -70,7 +71,7 @@ struct strDateTime
             }
             else
             {
-                monthLength = monthDays[month];
+                monthLength = pgm_read_byte(monthDays+month);
             }
 
             if (time >= monthLength)
@@ -85,6 +86,27 @@ struct strDateTime
         month = months + 1; // jan is month 1
         day   = time + 1;   // day of month
         return;
+    }
+    
+    #define countof(a) (sizeof(a) / sizeof(a[0]))
+    
+    void printDateTime()
+    {
+        if(valid)
+        {
+        char datestring[20];
+
+        snprintf_P(datestring, 
+            countof(datestring),
+            PSTR("%04u/%02u/%02u %02u:%02u:%02u"),
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second);
+            Serial.print(datestring);
+        }
     }
 };
 

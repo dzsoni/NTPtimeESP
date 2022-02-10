@@ -22,7 +22,8 @@
 #include <SimpleJsonParser.h>
 #include "struct_strDateTime.h"
 
-#ifndef LEAPYEAR(Y)
+#ifndef LEAPYEAR_
+#define LEAPYEAR_
 #define LEAP_YEAR(Y) (((1970 + Y) > 0) && !((1970 + Y) % 4) && (((1970 + Y) % 100) || !((1970 + Y) % 400)))
 #endif
 
@@ -62,7 +63,7 @@ public:
   strDateTime       getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving);
   strDateTime       getNTPtime();
   unsigned long     adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timZoneMin, int DayLightSavingSaving);
-  void              printDateTime(strDateTime _dateTime);
+  
 
   String            getNTPServer(){return _NTPserver;};
   int8_t            getUtcHour() {return _utchour;};

@@ -79,32 +79,6 @@ NTPtime::NTPtime(String str, byte mode)
 	}
 }
 
-void NTPtime::printDateTime(strDateTime _dateTime)
-{
-	if (_dateTime.valid)
-	{
-		Serial.print(_dateTime.year);
-		Serial.print("-");
-		Serial.print(_dateTime.month);
-		Serial.print("-");
-		Serial.print(_dateTime.day);
-		Serial.print(" ");
-		Serial.print(_dateTime.hour);
-		Serial.print(":");
-		Serial.print(_dateTime.minute);
-		Serial.print(":");
-		Serial.print(_dateTime.second);
-		Serial.println();
-	}
-	else
-	{
-#ifdef DEBUG_ON
-		Serial.println("Invalid time !!!");
-		Serial.println("");
-#endif
-	}
-}
-
 //
 // Summertime calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
 //
