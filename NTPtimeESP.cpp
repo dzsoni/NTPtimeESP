@@ -64,6 +64,8 @@ NTPtime::NTPtime(String str, byte mode)
 		_utchour    = _sjsonp.getJSONValueByKeyFromString(json, "UTCh").toInt();
 		_utcmin     = (uint8_t)abs(_sjsonp.getJSONValueByKeyFromString(json, "UTCm").toInt());
 		String tsh  = _sjsonp.getJSONValueByKeyFromString(json, "extratsh");
+        
+
 		if (tsh == "ST")
 		{
 			_stdst = 1;			//Summer Time
@@ -93,10 +95,32 @@ boolean NTPtime::summerTime(unsigned long _timeStamp)
 		return false; // keine Sommerzeit in Jan, Feb, Nov, Dez
 	if (_tempDateTime.month > 3 && _tempDateTime.month < 10)
 		return true; // Sommerzeit in Apr, Mai, Jun, Jul, Aug, Sep
-	if (((_tempDateTime.month == 3) && ((_tempDateTime.hour + 24 * _tempDateTime.day) >= (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 4) % 7)))) || ((_tempDateTime.month == 10) && (_tempDateTime.hour + 24 * _tempDateTime.day) < (3 + 24 * (31 - (5 * _tempDateTime.year / 4 + 1) % 7))))
-		return true;
-	else
-		return false;
+
+        //Permutation of last week's days
+        //date       days                               _tempDateTime.dayofWeek
+        //  25  Su Sa Fr Th We Tu Mo                              Su=1
+        //  26  Mo Su Sa Fr Th We Tu                              Mo=2
+        //  27  Tu Mo Su Sa Fr Th We                              Tu=3
+        //  28  We Tu Mo Su Sa Fr Th                              We=4
+        //  29  Th We Tu Mo Su Sa Fr                              Th=5
+        //  30  Fr Th We Tu Mo Su Sa                              Fr=6
+        //  31  Sa Fr Th We Tu Sa Su                              Sa=7
+
+        //march: summertime below 'Su' diagonal + 'Su' & hour>=2 
+        int previousSunday = _tempDateTime.day - (_tempDateTime.dayofWeek - 1);//sunday=0
+    if (_tempDateTime.month == 3)
+    {
+        if( previousSunday >= 25 
+            && (_tempDateTime.dayofWeek > 1 || (_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 2))) return  true;
+          return false;
+    }
+    //october: wintertime (not summer) below 'Su' diagonal + 'Su' & hour>=2 
+    if (_tempDateTime.month == 10
+        && previousSunday >= 25
+        && ( _tempDateTime.dayofWeek > 1 || (_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 2))) return false;
+
+    return true; 
+
 }
 
 boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
@@ -175,7 +199,9 @@ unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHo
     timeStamp+=(unsigned long)(timeZoneMin *60);
 	}
 	if (DayLightSaving == 1 && summerTime(timeStamp))
+    {
 		timeStamp += 3600; // European Summer time
+    }
 	if (DayLightSaving == 2 && daylightSavingTime(timeStamp))
 		timeStamp += 3600; // US daylight time
 	return timeStamp;
@@ -183,17 +209,14 @@ unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHo
 
 /* The time of a time zone is an offset from UTC. Most adjacent time zones are exactly one hour apart
    ,but there are not round hour differnce zones too. Use timeZoneMin to set not round hour.
-   If _DayLightSaving is true, time will be adjusted accordingly.
+   _DayLightSaving: 0=none, 1=Summer Time (EU), 2=Daylight Save Time (USA)
    Use returned time only after checking "ret.valid" flag
 */
 strDateTime NTPtime::getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving)
 {
-	_utchour = timeZoneHour;
-	_utcmin  = timeZoneMin;
-	_stdst   = DayLightSaving;
-
 	int cb;
 	strDateTime dateTime;
+    dateTime.valid=false;
 	unsigned long unixTime = 0;
 	unsigned long currentTimeStamp;
 
@@ -237,7 +260,7 @@ strDateTime NTPtime::getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int Da
 		{
 			if ((unsigned long)(millis() - _sentTime) > _recvTimeout)
 			{
-				_sendPhase = true;
+                _sendPhase = true;
 				_sentTime = 0;
 			}
 		}

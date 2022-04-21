@@ -10,7 +10,6 @@
 #endif
 
 static const uint8_t monthDays[] PROGMEM = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
 struct strDateTime
 {
     byte hour;
@@ -51,7 +50,6 @@ struct strDateTime
         year=years+1970;
         days -= LEAP_YEAR(years) ? 366 : 365;
         time -= days; // now it is days in this year, starting at 0
-    
 
         days = 0;
         months = 0;
@@ -71,9 +69,10 @@ struct strDateTime
             }
             else
             {
-                monthLength = pgm_read_byte(monthDays+month);
-            }
+                monthLength = pgm_read_byte(monthDays+months);
 
+            }
+            
             if (time >= monthLength)
             {
                 time -= monthLength;
@@ -88,24 +87,11 @@ struct strDateTime
         return;
     }
     
-    #define countof(a) (sizeof(a) / sizeof(a[0]))
-    
     void printDateTime()
     {
         if(valid)
         {
-        char datestring[20];
-
-        snprintf_P(datestring, 
-            countof(datestring),
-            PSTR("%04u/%02u/%02u %02u:%02u:%02u"),
-            year,
-            month,
-            day,
-            hour,
-            minute,
-            second);
-            Serial.print(datestring);
+        Serial.printf("%04u/%02u/%02u %02u:%02u:%02u",year,month,day,hour,minute,second);
         }
     }
 };

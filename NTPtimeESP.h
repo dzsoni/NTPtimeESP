@@ -70,6 +70,7 @@ public:
   uint8_t           getUtcMin()  {return _utcmin;};
   int8_t            getSTDST()   {return _stdst;};
 
+  void              setNTPServer(String server) {_NTPserver = server;};
   void              setUtcHour(int8_t hour) {_utchour = hour;};
   void              setUtcMin(uint8_t min) {_utcmin = min;};
   void              setSTDST(int8_t stdst) {_stdst = stdst;};
