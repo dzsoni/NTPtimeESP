@@ -82,9 +82,9 @@ NTPtime::NTPtime(String str, byte mode)
 }
 
 //
-// Summertime calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
+// Summertime calculates the daylight saving time. Input: UTC in Unixtime
 //
-boolean NTPtime::summerTime(unsigned long _timeStamp)
+boolean NTPtime::summerTime(unsigned long _UTCtimeStamp)
 {
 
 	strDateTime _tempDateTime;
@@ -106,18 +106,18 @@ boolean NTPtime::summerTime(unsigned long _timeStamp)
         //  30  Fr Th We Tu Mo Su Sa                              Fr=6
         //  31  Sa Fr Th We Tu Sa Su                              Sa=7
 
-        //march: summertime below 'Su' diagonal + 'Su' & hour>=2 
+        //march: summertime below 'Su' diagonal + 'Su' & hour>=1 
         int previousSunday = _tempDateTime.day - (_tempDateTime.dayofWeek - 1);//sunday=0
     if (_tempDateTime.month == 3)
     {
         if( previousSunday >= 25 
-            && (_tempDateTime.dayofWeek > 1 || (_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 2))) return  true;
+            && (_tempDateTime.dayofWeek > 1 || (_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 1))) return  true;
           return false;
     }
-    //october: wintertime (not summer) below 'Su' diagonal + 'Su' & hour>=2 
+    //october: wintertime (not summer) below 'Su' diagonal + 'Su' & hour>=1
     if (_tempDateTime.month == 10
         && previousSunday >= 25
-        && ( _tempDateTime.dayofWeek > 1 || (_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 2))) return false;
+        && ( _tempDateTime.dayofWeek > 1 || (_tempDateTime.dayofWeek == 1 && _tempDateTime.hour >= 1))) return false;
 
     return true; 
 
@@ -181,7 +181,7 @@ boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
   /**
    *adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timZoneMin, int DayLightSavingSaving)
    *
-   *@param[in]  timeStamp      Unix timestamp 
+   *@param[in]  timeStamp      UTC time in  Unix timeformat
    *@param[in]  timeZoneHour   UTC timezone hour difference
    *@param[in]  timeZoneMin    UTC timezone minutes shift
    *@param[in]  DayLightSavingSaving 0- None, 1- Summer Time 2-DayLight Save Time
@@ -189,6 +189,13 @@ boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
    */
 unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving)
 {
+	if (DayLightSaving == 1 && summerTime(timeStamp))
+    {
+		timeStamp += 3600; // European Summer time
+    }
+	if (DayLightSaving == 2 && daylightSavingTime(timeStamp))
+		timeStamp += 3600; // US daylight time
+
 	timeStamp+=(unsigned long)(timeZoneHour * 3600);
 	if(timeZoneHour<0)
 	{
@@ -198,19 +205,13 @@ unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHo
 	{
     timeStamp+=(unsigned long)(timeZoneMin *60);
 	}
-	if (DayLightSaving == 1 && summerTime(timeStamp))
-    {
-		timeStamp += 3600; // European Summer time
-    }
-	if (DayLightSaving == 2 && daylightSavingTime(timeStamp))
-		timeStamp += 3600; // US daylight time
 	return timeStamp;
 }
 
 /* The time of a time zone is an offset from UTC. Most adjacent time zones are exactly one hour apart
    ,but there are not round hour differnce zones too. Use timeZoneMin to set not round hour.
    _DayLightSaving: 0=none, 1=Summer Time (EU), 2=Daylight Save Time (USA)
-   Use returned time only after checking "ret.valid" flag
+   Use returned time only after checking .valid flag
 */
 strDateTime NTPtime::getNTPtime(int8_t timeZoneHour, uint8_t timeZoneMin, int DayLightSaving)
 {
