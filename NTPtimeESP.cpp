@@ -88,7 +88,7 @@ boolean NTPtime::summerTime(unsigned long _UTCtimeStamp)
 {
 
 	strDateTime _tempDateTime;
-	_tempDateTime.setFromUnixTimestamp(_timeStamp);
+	_tempDateTime.setFromUnixTimestamp(_UTCtimeStamp);
 	// printTime("Innerhalb ", _tempDateTime);
 
 	if (_tempDateTime.month < 3 || _tempDateTime.month > 10)
