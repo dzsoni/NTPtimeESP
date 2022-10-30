@@ -18,7 +18,7 @@ Based on work from John Lassen: http://www.john-lassen.de/index.php/projects/esp
 #define RECV_TIMEOUT_DEFAULT    1   // 1 second
 #define SEND_INTRVL_DEFAULT     1   // 1 second
 #define MAX_SEND_INTERVAL       60  // 60 seconds
-#define MAC_RECV_TIMEOUT        60	// 60 seconds
+#define MAX_RECV_TIMEOUT        60	// 60 seconds
 
 const int NTP_PACKET_SIZE = 48;
 byte _packetBuffer[NTP_PACKET_SIZE];
@@ -38,7 +38,7 @@ bool NTPtime::setSendInterval(unsigned long sendInterval)
 bool NTPtime::setRecvTimeout(unsigned long recvTimeout)
 {
 	bool retVal = false;
-	if (recvTimeout <= MAC_RECV_TIMEOUT)
+	if (recvTimeout <= MAX_RECV_TIMEOUT)
 	{
 		_recvTimeout = recvTimeout * SEC_TO_MS;
 		retVal = true;
