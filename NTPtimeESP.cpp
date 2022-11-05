@@ -168,13 +168,13 @@ boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
 	if (previousSunday < 1)
 	{
 		// is not true for Sunday after 2am or any day after 1st Sunday any time
-		return ((_tempDateTime.dayofWeek == 1 && _tempDateTime.hour < 2) || (_tempDateTime.dayofWeek > 1));
+		return ((_tempDateTime.dayofWeek == 1 && _tempDateTime.hour < 1) || (_tempDateTime.dayofWeek > 1));
 		//return true;
 	} // end if (previousSunday < 1)
 	else
 	{
 		// return false unless after first wk and dow = Sunday and hour < 2
-		return (_tempDateTime.day < 8 && _tempDateTime.dayofWeek == 1 && _tempDateTime.hour < 2);
+		return (_tempDateTime.day < 8 && _tempDateTime.dayofWeek == 1 && _tempDateTime.hour < 1);
 	} // end else
 } // end boolean NTPtime::daylightSavingTime(unsigned long _timeStamp)
 
@@ -193,9 +193,7 @@ unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHo
     {
 		timeStamp += 3600; // European Summer time
     }
-	if (DayLightSaving == 2 && daylightSavingTime(timeStamp))
-		timeStamp += 3600; // US daylight time
-
+	
 	timeStamp+=(unsigned long)(timeZoneHour * 3600);
 	if(timeZoneHour<0)
 	{
@@ -205,6 +203,8 @@ unsigned long NTPtime::adjustTimeZone(unsigned long timeStamp, int8_t timeZoneHo
 	{
     timeStamp+=(unsigned long)(timeZoneMin *60);
 	}
+	if (DayLightSaving == 2 && daylightSavingTime(timeStamp))
+		timeStamp += 3600; // US daylight time
 	return timeStamp;
 }
 
