@@ -19,7 +19,7 @@
 #include <ESP8266WiFi.h>
 #endif
 #include <WiFiUdp.h>
-#include <SimpleJsonParser.h>
+#include <SimpleJsonParser.h> //https://github.com/dzsoni/SimpleJsonParser
 #include "struct_strDateTime.h"
 
 #ifndef LEAPYEAR_
