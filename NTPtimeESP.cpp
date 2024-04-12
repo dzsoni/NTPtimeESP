@@ -60,10 +60,10 @@ NTPtime::NTPtime(String str, byte mode)
 	if (mode == 1)
 	{
 		String json = _sjsonp.fileToString(str);
-		_NTPserver  = _sjsonp.getJSONValueByKeyFromString(json, "NTPserver");
-		_utchour    = _sjsonp.getJSONValueByKeyFromString(json, "UTCh").toInt();
-		_utcmin     = (uint8_t)abs(_sjsonp.getJSONValueByKeyFromString(json, "UTCm").toInt());
-		String tsh  = _sjsonp.getJSONValueByKeyFromString(json, "extratsh");
+		_NTPserver  = _sjsonp.getValueByKeyFromString(json, "NTPserver");
+		_utchour    = _sjsonp.getValueByKeyFromString(json, "UTCh").toInt();
+		_utcmin     = (uint8_t)abs(_sjsonp.getValueByKeyFromString(json, "UTCm").toInt());
+		String tsh  = _sjsonp.getValueByKeyFromString(json, "extratsh");
         
 
 		if (tsh == "ST")
